@@ -4,6 +4,7 @@ The project author has discontinued development, so I decided to fix some minor 
 
 Currently, the fork contains the following changes:
 - Increased button transparency (128 -> 64)
+- Added button to hide controls (controls remains working, useful for keymapping)
 
 Below is the description of the original project
 
