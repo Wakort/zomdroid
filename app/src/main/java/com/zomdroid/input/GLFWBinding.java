@@ -90,9 +90,10 @@ public enum GLFWBinding {
 
     /* special binding for joysticks */
     LEFT_JOYSTICK(-1),
-    RIGHT_JOYSTICK(-1);
+    RIGHT_JOYSTICK(-1),
 
-    VISIBILITY("VISIBILITY");
+    /*SPECIAL*/
+    VISIBILITY(-1);
 
     public final int code;
     static final int MNK_MIN_ORDINAL = KEY_SPACE.ordinal();

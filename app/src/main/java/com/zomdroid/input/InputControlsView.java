@@ -262,4 +262,10 @@ public class InputControlsView extends View {
 
         protected abstract void hide();
     }
+
+    /*visibility*/
+    public void toggleVisibility() {
+        controlsVisible = !controlsVisible;
+        invalidate();
+    }
 }

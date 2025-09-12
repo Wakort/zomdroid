@@ -186,6 +186,15 @@ public abstract class AbstractControlElement {
         }
     }
 
+    void handleSpecialBinding(GLFWBinding binding, boolean isPressed) {
+        Log.v(LOG_TAG, "handleSpecialBinding binding=" + binding + " isPressed=" + isPressed);
+        if (isPressed && binding == GLFWBinding.VISIBILITY) {
+            if (parentView != null) {
+                parentView.toggleVisibility();
+            }
+        }
+    }
+
     public enum Type {
         STICK,
         DPAD,
@@ -195,6 +204,7 @@ public abstract class AbstractControlElement {
 
     public enum InputType {
         MNK,
-        GAMEPAD
+        GAMEPAD,
+        SPECIAL
     }
 }

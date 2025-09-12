@@ -47,6 +47,11 @@ public class ButtonControlElement extends AbstractControlElement {
                     handleGamepadBinding(binding, isPressed);
                 }
                 break;
+            case SPECIAL:
+                for (GLFWBinding binding : bindings) {
+                    handleSpecialBinding(binding, isPressed);
+                }
+                break;
         }
     }
 
