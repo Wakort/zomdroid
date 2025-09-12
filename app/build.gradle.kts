@@ -38,8 +38,8 @@ android {
         applicationId = "com.zomdroid"
         minSdk = 30
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -89,7 +89,7 @@ android {
             useLegacyPackaging = true
         }
     }
-    ndkVersion = "28.0.13004108"
+    ndkVersion = "28.2.13676358"
 }
 
 dependencies {

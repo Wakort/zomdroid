@@ -38,6 +38,7 @@ public class InputControlsView extends View {
     GestureDetector gestureDetector;
     private Gson gson = new Gson();
     private SharedPreferences sharedPreferences;
+    private boolean controlsVisible = true;
 
     private ElementSettingsController elementSettingsController;
 
@@ -124,8 +125,10 @@ public class InputControlsView extends View {
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
 
-        for (AbstractControlElement controlElement : controlElements) {
-            controlElement.draw(canvas);
+        if (controlsVisible) {
+            for (AbstractControlElement controlElement : controlElements) {
+                controlElement.draw(canvas);
+            }
         }
     }
 

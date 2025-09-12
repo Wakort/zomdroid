@@ -92,6 +92,8 @@ public enum GLFWBinding {
     LEFT_JOYSTICK(-1),
     RIGHT_JOYSTICK(-1);
 
+    VISIBILITY("VISIBILITY");
+
     public final int code;
     static final int MNK_MIN_ORDINAL = KEY_SPACE.ordinal();
     static final int MNK_MAX_ORDINAL = MOUSE_BUTTON_8.ordinal();
