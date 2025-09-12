@@ -1,5 +1,11 @@
-> [!WARNING] 
-> Development is currently on hold while I wait for an official response from The Indie Stone regarding potential sponsorship. Just to clarify — TIS is not blocking or interfering with development in any way. I'm simply waiting to hear back, as I don’t have the resources to continue without financial support.
+# About this fork
+
+The project author has discontinued development, so I decided to fix some minor issues until someone takes over the development.
+
+Currently, the fork contains the following changes:
+- Increased button transparency (128 -> 64)
+
+Below is the description of the original project
 
 # Zomdroid
 
