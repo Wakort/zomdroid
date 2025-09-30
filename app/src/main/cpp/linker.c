@@ -30,7 +30,7 @@ static void* (*loader_android_dlopen_ext)(const char* filename,
 static void* vulkan_driver_handle;
 static void* vulkan_loader_handle;
 
-static EmulatedLib jni_libs[] = {{.name = "PZClipper64"}, {.name = "PZBullet64"}, {.name = "PZBulletNoOpenGL64"}, {.name = "Lighting64"}, {.name = "PZPathFind64"}, {.name = "PZPopMan64"}, {.name = "fmodintegration64"}, { .name = "zomdroidtest"} };
+static EmulatedLib jni_libs[] = {{.name = "PZClipper64"}, {.name = "PZBullet64"}, {.name = "PZBulletNoOpenGL64"}, {.name = "Lighting64"}, {.name = "PZPathFind64"}, {.name = "PZPopMan64"}, {.name = "fmodintegration64"}, { .name = "zomdroidtest"}, { .name = "RakNet64"}, { .name = "ZNetNoSteam"} };
 static int jni_lib_count = sizeof (jni_libs) / sizeof (EmulatedLib);
 
 
@@ -548,6 +548,28 @@ void *dlopen(const char* filename, int flags) {
     for (int i = 0; i < jni_lib_count; i++) {
         if (!strstr(filename, jni_libs[i].name)) continue;
 
+        //trying to load native library
+        if (jni_libs[i].name != "fmodintegration64") { //later I should fix that. Java for some reason didn't see classes inside
+            const char* base = strrchr(filename, '/');
+            if (base)
+                base++;
+            else
+                base = filename;
+
+            char android_filename[BUF_SIZE];
+            LOGI("Base name: %s", base);
+            snprintf(android_filename, BUF_SIZE,"android/arm64-v8a/%s", base);
+
+            if (access(android_filename, F_OK) == 0) {
+                LOGI("Loading native Android lib: %s", android_filename);
+                jni_libs[i].handle = loader_dlopen(android_filename, flags, __builtin_return_address(0));
+                jni_libs[i].is_emulated = false;
+                return jni_libs[i].handle;
+            }
+            LOGI("Native Android version of %s not found, loading through box64...", android_filename);
+        }
+
+        //elsewise loading in box64
         LOGI("Loading %s in box64...", filename);
         needed_libs_t* needed_lib = new_neededlib(1);
         needed_lib->names[0] = strdup(filename);
@@ -561,6 +583,7 @@ void *dlopen(const char* filename, int flags) {
             return NULL;
         }
         jni_libs[i].handle = needed_lib->libs[0];
+        jni_libs[i].is_emulated = true;
         free_neededlib(needed_lib);
 
         int old_deferredInit = my_context->deferredInit;
@@ -592,51 +615,56 @@ void *dlsym(void *handle, const char *sym_name) {
 
     for (int i = 0; i < jni_lib_count; i++) {
         struct library_s* lib = jni_libs[i].handle;
+        EmulatedLib* elib = &jni_libs[i];
         if (sym_name == NULL || handle == NULL || lib != handle) continue;
 
-        struct lib_s* maplib = GetMaplib(lib);
-        uintptr_t box64_sym = FindGlobalSymbol(maplib, sym_name, -1, NULL, 0);
-        if (box64_sym == 0) {
-            return NULL;
-        }
-
-        // On Android FMOD relies on Java for initialization, so we need to attach the game audio thread to ART VM
-        if (strcmp(sym_name, "Java_fmod_javafmodJNI_FMOD_1System_1Create") == 0) {
-            JNIEnv* art_jni_env = NULL;
-            (*g_zomdroid_art_vm)->GetEnv(g_zomdroid_art_vm, (void **) &art_jni_env, JNI_VERSION_1_6) ;
-            if (art_jni_env == NULL){
-                (*g_zomdroid_art_vm)->AttachCurrentThread(g_zomdroid_art_vm,
-                                                          (void **) &art_jni_env, NULL);
+        if (elib->is_emulated) {
+            struct lib_s* maplib = GetMaplib(lib);
+            uintptr_t box64_sym = FindGlobalSymbol(maplib, sym_name, -1, NULL, 0);
+            if (box64_sym == 0) {
+                return NULL;
             }
-            if (art_jni_env == NULL) {
-                LOGE("Failed to attach game FMOD thread to ART VM");
-            } else {
-                LOGD("Successfully attached game FMOD thread to ART VM");
+
+            // On Android FMOD relies on Java for initialization, so we need to attach the game audio thread to ART VM
+            if (strcmp(sym_name, "Java_fmod_javafmodJNI_FMOD_1System_1Create") == 0) {
+                JNIEnv* art_jni_env = NULL;
+                (*g_zomdroid_art_vm)->GetEnv(g_zomdroid_art_vm, (void **) &art_jni_env, JNI_VERSION_1_6) ;
+                if (art_jni_env == NULL){
+                    (*g_zomdroid_art_vm)->AttachCurrentThread(g_zomdroid_art_vm,
+                                                            (void **) &art_jni_env, NULL);
+                }
+                if (art_jni_env == NULL) {
+                    LOGE("Failed to attach game FMOD thread to ART VM");
+                } else {
+                    LOGD("Successfully attached game FMOD thread to ART VM");
+                }
             }
-        }
 
-        char* method_sig = method_signature_from_symbol_name(sym_name);
+            char* method_sig = method_signature_from_symbol_name(sym_name);
 
-        if (method_sig == NULL) return NULL;
+            if (method_sig == NULL) return NULL;
 
-        char* arg_types = NULL;
-        char ret_type = 0;
-        if (method_signature_to_types(method_sig, &arg_types, &ret_type) != 0) {
+            char* arg_types = NULL;
+            char ret_type = 0;
+            if (method_signature_to_types(method_sig, &arg_types, &ret_type) != 0) {
+                free(method_sig);
+                return NULL;
+            }
             free(method_sig);
-            return NULL;
-        }
-        free(method_sig);
 
-        void* sym = zomdroid_emulation_bridge_jni_symbol(&jni_libs[i], box64_sym,
-                                                         arg_types, ret_type);
-        if (sym == NULL) {
-            LOGE("Failed to create emulation bridge for jni symbol %s", sym_name);
+            void* sym = zomdroid_emulation_bridge_jni_symbol(&jni_libs[i], box64_sym,
+                                                            arg_types, ret_type);
+            if (sym == NULL) {
+                LOGE("Failed to create emulation bridge for jni symbol %s", sym_name);
+                free(arg_types);
+                return NULL;
+            }
             free(arg_types);
-            return NULL;
+            LOGD("Successfully created emulation bridge for jni symbol %s at %p (target=%ld)", sym_name, sym, box64_sym);
+            return sym;
+        } else {
+            return loader_dlsym(handle, sym_name, __builtin_return_address(0));
         }
-        free(arg_types);
-        LOGD("Successfully created emulation bridge for jni symbol %s at %p (target=%ld)", sym_name, sym, box64_sym);
-        return sym;
     }
 
     return loader_dlsym(handle, sym_name, __builtin_return_address(0));
